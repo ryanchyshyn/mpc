@@ -15,7 +15,7 @@ using CppAD::AD;
 size_t N = 12;
 const double dt = 0.1;
 
-double ref_v = mph_to_mps(120);
+double ref_v = mph_to_mps(90);
 size_t x_start = 0;
 size_t y_start = x_start + N;
 size_t psi_start = y_start + N;
