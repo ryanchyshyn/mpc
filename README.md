@@ -21,7 +21,7 @@ The vehicle is described by the state [x, y, orientation angle (psi), velocity, 
 ![image][image3]
 ![image][image4]
 
-Actuators are presented by two variables: speed and steering. Speed is in range between -1 and 1. Maximum positive value 1 corresponds to the reference speed (80 mph in my case). Negative value means breaking. Steering values should be in range of steering constrains (+- 25 degree).
+Actuators are presented by two variables: speed and steering. Speed is in range between -1 and 1. Maximum positive value 1 corresponds to the reference speed (120 mph in my case). Negative value means breaking. Steering values should be in range of steering constrains (+- 25 degree).
 
 ## Timestep Length and Elapsed Duration (N & dt)
 The implementation rely on two hyperparameters: N and dt which forms the prediction horizon.
@@ -32,15 +32,15 @@ Too high N values lead to too smooth turning radius which in turn leads to cross
 ## Polynomial Fitting and MPC Preprocessing
 To simplify calculations waypoints are converted into Vehicle coordinate system:
 ```
-X = dx * cos(-psi) - dy * sin(-psi);
-Y = dx * sin(-psi) + dy * cos(-psi);
+X = dx * cos(psi) + dy * sin(psi);
+Y = -dx * sin(psi) + dy * cos(psi);
 ```
 A third order polynomial is used to fit the points.
 
 ## Model Predictive Control with Latency
 
-Latency is not taked into account there.
-To avoid oscillations issue I included product of speed and steering into cost function. Literaly this means that so higher is speed the smaller should be steering value and wise versa.
+To compensate vehicle latency in 100ms I performs MPC calculations on predicted at 100ms ahead values instead of actual ones.
+The formulas are the same as provided earlier. However note that steering angle sign is inverted.
 
 ---
 
