@@ -7,26 +7,15 @@
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
+double mph_to_mps(double mph) { return mph * 0.44704; }
 
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 12;
-double dt = 0.1;
+const double dt = 0.1;
 
-// This value assumes the model presented in the classroom is used.
-//
-// It was obtained by measuring the radius formed by running the vehicle in the
-// simulator around in a circle with a constant steering angle and velocity on a
-// flat terrain.
-//
-// Lf was tuned until the the radius formed by the simulating the model
-// presented in the classroom matched the previous radius.
-//
-// This is the length from front to CoG that has a similar radius.
-const double Lf = 2.67;
-
-double ref_v = 80;
+double ref_v = mph_to_mps(120);
 size_t x_start = 0;
 size_t y_start = x_start + N;
 size_t psi_start = y_start + N;
@@ -66,12 +55,12 @@ class FG_eval {
     for (size_t t = 0; t < N - 1; t++) {
       fg[0] += 2 * CppAD::pow(vars[delta_start + t], 2);
       fg[0] += 5 * CppAD::pow(vars[a_start + t], 2);
-	  fg[0] += 750 * CppAD::pow(vars[delta_start + t] * vars[v_start + t], 2); // the bigger is speed the smaller can be delta and wise versa
+	  fg[0] += 900 * CppAD::pow(vars[delta_start + t] * vars[v_start + t], 2); // the bigger is speed the smaller can be delta and wise versa
 	}
 
     // Minimize the value gap between sequential actuations.
     for (size_t t = 0; t < N - 2; t++) {
-      fg[0] += 800 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+      fg[0] += 1000 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
       fg[0] += 10 * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
     }
 
@@ -144,12 +133,12 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
 
-  double x = state[0];
-  double y = state[1];
-  double psi = state[2];
-  double v = state[3];
-  double cte = state[4];
-  double epsi = state[5];
+  const double x = state[0];
+  const double y = state[1];
+  const double psi = state[2];
+  const double v = state[3];
+  const double cte = state[4];
+  const double epsi = state[5];
 
   // TODO: Set the number of model variables (includes both states and inputs).
   // For example: If the state is a 4 element vector, the actuators is a 2
@@ -164,21 +153,12 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // SHOULD BE 0 besides initial state.
   Dvector vars(n_vars);
   for (i = 0; i < n_vars; i++) {
-    vars[i] = 0;
+	  vars[i] = 0;
   }
 
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
   // TODO: Set lower and upper limits for variables.
-
-  // Set the initial variable values
-  vars[x_start] = x;
-  vars[y_start] = y;
-  vars[psi_start] = psi;
-  vars[v_start] = v;
-  vars[cte_start] = cte;
-  vars[epsi_start] = epsi;
-
 
   // Set all non-actuators upper and lowerlimits
   // to the max negative and positive values.

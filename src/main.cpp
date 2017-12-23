@@ -61,6 +61,11 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
   return result;
 }
 
+void intoVahicleCoordinates(double dx, double dy, double psi, double& x_out, double& y_out) {
+	x_out = dx * cos(psi) + dy * sin(psi);
+	y_out = -dx * sin(psi) + dy * cos(psi);
+}
+
 int main() {
   uWS::Hub h;
 
@@ -86,7 +91,9 @@ int main() {
           double px = j[1]["x"];
           double py = j[1]["y"];
           double psi = j[1]["psi"];
-          double v = j[1]["speed"];
+          double v = mph_to_mps(j[1]["speed"]);
+		  const double steering_angle = j[1]["steering_angle"];
+		  const double throttle = j[1]["throttle"];
 
           /*
           * TODO: Calculate steering angle and throttle using MPC.
@@ -101,16 +108,27 @@ int main() {
 		  for (size_t i = 0; i < ptsx.size(); i++) {
 			  double dx = ptsx[i] - px;
 			  double dy = ptsy[i] - py;
-			  wpts_x[i] = dx * cos(-psi) - dy * sin(-psi);
-			  wpts_y[i] = dx * sin(-psi) + dy * cos(-psi);
+			  double vehicle_x, vehicle_y;
+			  intoVahicleCoordinates(dx, dy, psi, vehicle_x, vehicle_y);
+			  wpts_x[i] = vehicle_x;
+			  wpts_y[i] = vehicle_y;
 		  }
 
 		  auto coeffs = polyfit(wpts_x, wpts_y, 3);
 		  double cte = polyeval(coeffs, 0);  // x = 0 in vehicle coordinate system
 		  double epsi = -atan(coeffs[1]);  // in vehicle coordinate system -atan(c1 + c2*x + c3* x^2) = -atan(c1)
 
+		  // predicted values at latency time (100ms)
+		  const double dt = 0.1;
+		  const double pred_x = v * dt;
+		  const double pred_y = 0;
+		  const double pred_psi = -v * steering_angle * dt / Lf;
+		  const double pred_v = v + throttle * dt;
+		  const double pred_cte = cte + v * sin(epsi) * dt;
+		  const double pred_epsi = epsi + pred_psi;
+
 		  Eigen::VectorXd state(6);
-		  state << 0, 0, 0, v, cte, epsi;
+		  state << pred_x, pred_y, pred_psi, pred_v, pred_cte, pred_epsi;
 
 		  auto sol_result = mpc.Solve(state, coeffs);
 		  double steer_value = sol_result[0];
